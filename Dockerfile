@@ -88,9 +88,8 @@ RUN echo "Downloading Guacamole versions: 1.5.2, 1.5.5, 1.6.0..." && \
     wget -q https://archive.apache.org/dist/guacamole/1.6.0/binary/guacamole-1.6.0.war -O /opt/guacamole-wars/guacamole-1.6.0.war && \
     echo "All versions downloaded successfully!"
 
-# Copy startup script and supervisor config
+# Copy startup script (supervisord.conf is generated dynamically)
 COPY start-guacamole.sh /opt/start-guacamole.sh
-COPY supervisord.conf /etc/supervisord.conf
 RUN chmod +x /opt/start-guacamole.sh
 
 # Expose ports

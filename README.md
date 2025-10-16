@@ -17,7 +17,7 @@ A single, self-contained Docker image supporting Apache Guacamole versions 1.5.2
 ### SSH Connection with Embedded guacd
 
 ```bash
-docker run -d -p 8080:8080 \
+docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
   -e GUACAMOLE_VERSION=1.5.5 \
   -e USE_EMBEDDED_GUACD=true \
   -e TARGET_PROTOCOL=ssh \
@@ -25,7 +25,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=22 \
   -e TARGET_USER=ubuntu \
   -e TARGET_PASSWORD=secret \
-  guacamole-client
+  vanilla-guacamole
 ```
 
 Then access: **http://localhost:8080**
@@ -35,7 +35,7 @@ Then access: **http://localhost:8080**
 ### RDP Connection with External guacd
 
 ```bash
-docker run -d -p 8080:8080 \
+docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
   -e GUACAMOLE_VERSION=1.5.5 \
   -e USE_EMBEDDED_GUACD=false \
   -e GUACD_HOST=192.168.1.50 \
@@ -45,7 +45,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=3389 \
   -e TARGET_USER=Administrator \
   -e TARGET_PASSWORD=winpass \
-  guacamole-client
+  vanilla-guacamole
 ```
 
 **Login:** `admin` / `admin`
@@ -53,7 +53,7 @@ docker run -d -p 8080:8080 \
 ### View Help
 
 ```bash
-docker run --rm guacamole-client --help
+docker run --rm vanilla-guacamole --help
 ```
 
 ## Environment Variables
@@ -79,13 +79,117 @@ docker run --rm guacamole-client --help
 | `GUACD_HOST` | External guacd hostname/IP | - |
 | `GUACD_PORT` | External guacd port | `4822` |
 
-### Optional
+### Protocol-Specific Optional Parameters
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `IGNORE_CERT` | Ignore SSL cert (RDP) | `true` |
-| `ENABLE_DRIVE` | Enable drive redirection (RDP) | `false` |
-| `DRIVE_PATH` | Path for drive redirection | `/tmp/guac-drive` |
+#### RDP Parameters
+
+| Variable | Description | Possible Values | Default | Notes |
+|----------|-------------|-----------------|---------|-------|
+| `IGNORE_CERT` | Ignore SSL certificate errors | `true`, `false` | `true` | Bypass certificate validation |
+| `ENABLE_DRIVE` | Enable drive redirection | `true`, `false` | `false` | Share local drive with RDP session |
+| `DRIVE_PATH` | Path for drive redirection | Any path | `/tmp/guac-drive` | Must exist in container |
+| `RDP_DOMAIN` | Windows domain | Any string | - | e.g., `MYCOMPANY` |
+| `RDP_SERVER_LAYOUT` | Keyboard layout | `en-us-qwerty`, `de-de-qwertz`, etc. | - | See [Guacamole docs](https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp) |
+| `RDP_SECURITY` | Security mode | `any`, `nla`, `tls`, `rdp`, `vmconnect` | `any` | Authentication security |
+| `RDP_DISABLE_AUTH` | Bypass authentication | `true`, `false` | - | For auto-login scenarios |
+| `RDP_RESIZE_METHOD` | Display resize method | `display-update`, `reconnect` | - | How to handle resolution changes |
+| `RDP_CONSOLE` | Admin/console session | `true`, `false` | - | Connect to console session |
+
+**RDP Example:**
+```bash
+docker run -d -p 8080:8080 \
+  -e GUACAMOLE_VERSION=1.5.5 \
+  -e USE_EMBEDDED_GUACD=true \
+  -e TARGET_PROTOCOL=rdp \
+  -e TARGET_HOST=windows-server \
+  -e TARGET_PORT=3389 \
+  -e TARGET_USER=Administrator \
+  -e TARGET_PASSWORD=password \
+  -e RDP_DOMAIN=CORP \
+  -e RDP_SERVER_LAYOUT=en-us-qwerty \
+  -e RDP_SECURITY=nla \
+  vanilla-guacamole
+```
+
+#### VNC Parameters
+
+| Variable | Description | Possible Values | Notes |
+|----------|-------------|-----------------|-------|
+| `VNC_COLOR_DEPTH` | Color depth | `8`, `16`, `24`, `32` | Higher = better quality, more bandwidth |
+| `VNC_CURSOR` | Cursor rendering | `local`, `remote` | `local` recommended for performance |
+| `VNC_READ_ONLY` | View-only mode | `true`, `false` | Disable keyboard/mouse input |
+| `VNC_DISABLE_DISPLAY_RESIZE` | Prevent auto-resize | `true`, `false` | Lock display size |
+
+**Note:** `TARGET_USER` is **optional** for VNC (VNC only requires password)
+
+**VNC Example:**
+```bash
+docker run -d -p 8080:8080 \
+  -e GUACAMOLE_VERSION=1.5.5 \
+  -e USE_EMBEDDED_GUACD=true \
+  -e TARGET_PROTOCOL=vnc \
+  -e TARGET_HOST=vnc-server \
+  -e TARGET_PORT=5900 \
+  -e TARGET_PASSWORD=vncpass \
+  -e VNC_COLOR_DEPTH=24 \
+  -e VNC_CURSOR=local \
+  vanilla-guacamole
+```
+
+#### SSH Parameters
+
+| Variable | Description | Possible Values | Notes |
+|----------|-------------|-----------------|-------|
+| `SSH_FONT_SIZE` | Terminal font size | Any integer | e.g., `12`, `14`, `16` |
+| `SSH_COLOR_SCHEME` | Terminal color scheme | `black-white`, `white-black`, `gray-black`, `green-black`, `blue-black` | Light/dark themes |
+| `SSH_SCROLLBACK` | Scrollback buffer size | Any integer | e.g., `1024`, `2048` (lines) |
+
+**SSH Example:**
+```bash
+docker run -d -p 8080:8080 \
+  -e GUACAMOLE_VERSION=1.5.5 \
+  -e USE_EMBEDDED_GUACD=true \
+  -e TARGET_PROTOCOL=ssh \
+  -e TARGET_HOST=linux-server \
+  -e TARGET_PORT=22 \
+  -e TARGET_USER=ubuntu \
+  -e TARGET_PASSWORD=password \
+  -e SSH_FONT_SIZE=14 \
+  -e SSH_COLOR_SCHEME=black-white \
+  -e SSH_SCROLLBACK=2048 \
+  vanilla-guacamole
+```
+
+### Parameter Validation
+
+The container validates parameters at startup and will exit with an error if invalid values are provided:
+
+**RDP Security Validation:**
+- Valid: `any`, `nla`, `tls`, `rdp`, `vmconnect`
+- Invalid: Any other value
+
+**RDP Resize Method Validation:**
+- Valid: `display-update`, `reconnect`  
+- Invalid: Any other value
+
+**VNC Color Depth Validation:**
+- Valid: `8`, `16`, `24`, `32`
+- Invalid: Any other number
+
+**VNC Cursor Validation:**
+- Valid: `local`, `remote`
+- Invalid: Any other value
+
+**Boolean Parameters:**
+- Valid: `true`, `false`
+- Invalid: Any other value (yes/no, 1/0, etc. are NOT accepted)
+- Applies to: `RDP_DISABLE_AUTH`, `RDP_CONSOLE`, `VNC_READ_ONLY`, `VNC_DISABLE_DISPLAY_RESIZE`
+
+**Example validation error:**
+```bash
+docker run ... -e RDP_SECURITY=invalid ...
+# Output: ERROR: RDP_SECURITY must be one of: any, nla, tls, rdp, vmconnect
+```
 
 ## Examples
 
@@ -100,7 +204,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=5901 \
   -e TARGET_USER=vncuser \
   -e TARGET_PASSWORD=vncpass \
-  guacamole-client
+  vanilla-guacamole
 ```
 
 ### RDP with Drive Redirection
@@ -116,7 +220,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PASSWORD=password \
   -e ENABLE_DRIVE=true \
   -e DRIVE_PATH=/tmp/shared \
-  guacamole-client
+  vanilla-guacamole
 ```
 
 ### Using Different Guacamole Versions
@@ -131,7 +235,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=22 \
   -e TARGET_USER=user \
   -e TARGET_PASSWORD=password \
-  guacamole-client
+  vanilla-guacamole
 
 # Or use version 1.6.0
 docker run -d -p 8080:8080 \
@@ -147,7 +251,7 @@ git clone https://github.com/your-repo/vanila-guacamole.git
 cd vanila-guacamole
 
 # Build
-docker build -t guacamole-client .
+docker build -t vanilla-guacamole .
 
 # Run
 docker run -d -p 8080:8080 \
@@ -158,7 +262,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=22 \
   -e TARGET_USER=ubuntu \
   -e TARGET_PASSWORD=password \
-  guacamole-client
+  vanilla-guacamole
 ```
 
 ## Container Management
@@ -238,7 +342,7 @@ docker run -d -p 8080:8080 \
 docker logs <container-id>
 
 # Verify all required env vars are set
-docker run --rm guacamole-client --help
+docker run --rm vanilla-guacamole --help
 ```
 
 ### Cannot connect to target server
@@ -266,51 +370,6 @@ docker exec <container-id> cat /var/log/supervisor/guacd.log
 ```bash
 # Test from container
 docker exec <container-id> nc -zv GUACD_HOST GUACD_PORT
-```
-
-## Security Considerations
-
-1. **Use strong passwords** - Don't use default passwords in production
-2. **HTTPS** - Put behind a reverse proxy with SSL
-3. **Network isolation** - Use Docker networks to restrict access
-4. **Secrets management** - Consider using Docker secrets for passwords
-5. **Regular updates** - Rebuild image with latest security patches
-
-## Production Deployment
-
-### With HTTPS Reverse Proxy
-
-```bash
-# Run Guacamole
-docker run -d --name guacamole \
-  -e GUACAMOLE_VERSION=1.5.5 \
-  -e USE_EMBEDDED_GUACD=true \
-  -e TARGET_PROTOCOL=ssh \
-  -e TARGET_HOST=backend-server \
-  -e TARGET_PORT=22 \
-  -e TARGET_USER=sysadmin \
-  -e ADMIN_USER=admin \
-  -e ADMIN_PASSWORD=secure-random-password \
-  guacamole-client
-
-# Run nginx as reverse proxy
-docker run -d --name nginx \
-  -p 443:443 \
-  -v /path/to/nginx.conf:/etc/nginx/nginx.conf:ro \
-  -v /path/to/ssl:/etc/ssl:ro \
-  --link guacamole:guacamole \
-  nginx
-```
-
-### Using Docker Secrets (Swarm/Compose)
-
-```bash
-# Create secrets
-echo "admin-password" | docker secret create guac_admin_pass -
-echo "target-password" | docker secret create target_pass -
-
-# Reference in deployment
-# (requires additional scripting to read from /run/secrets/)
 ```
 
 ## License

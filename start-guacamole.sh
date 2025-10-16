@@ -16,7 +16,7 @@ show_help() {
     echo -e "═══════════════════════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "${GREEN}USAGE:${NC}"
-    echo "  docker run -p 8080:8080 [OPTIONS] guacamole-client"
+    echo "  docker run -p 8080:8080 [OPTIONS] vanilla-guacamole"
     echo ""
     echo -e "${GREEN}REQUIRED ENVIRONMENT VARIABLES:${NC}"
     echo -e "  ${YELLOW}GUACAMOLE_VERSION${NC}     Guacamole version: 1.5.2, 1.5.5, or 1.6.0"
@@ -36,6 +36,25 @@ show_help() {
     echo -e "  ${YELLOW}ENABLE_DRIVE${NC}          Enable drive redirection for RDP (true/false)"
     echo -e "  ${YELLOW}DRIVE_PATH${NC}            Path for drive redirection (default: /tmp/guac-drive)"
     echo ""
+    echo -e "${GREEN}OPTIONAL RDP PARAMETERS:${NC}"
+    echo -e "  ${YELLOW}RDP_DOMAIN${NC}            Windows domain for authentication"
+    echo -e "  ${YELLOW}RDP_SERVER_LAYOUT${NC}     Keyboard layout (e.g., en-us-qwerty, de-de-qwertz)"
+    echo -e "  ${YELLOW}RDP_SECURITY${NC}          Security mode: any, nla, tls, rdp, vmconnect (default: any)"
+    echo -e "  ${YELLOW}RDP_DISABLE_AUTH${NC}      Bypass authentication (true/false)"
+    echo -e "  ${YELLOW}RDP_RESIZE_METHOD${NC}     Display resize: display-update, reconnect"
+    echo -e "  ${YELLOW}RDP_CONSOLE${NC}           Connect to admin/console session (true/false)"
+    echo ""
+    echo -e "${GREEN}OPTIONAL VNC PARAMETERS:${NC}"
+    echo -e "  ${YELLOW}VNC_COLOR_DEPTH${NC}       Color depth: 8, 16, 24, 32"
+    echo -e "  ${YELLOW}VNC_CURSOR${NC}            Cursor rendering: local, remote"
+    echo -e "  ${YELLOW}VNC_READ_ONLY${NC}         View-only mode (true/false)"
+    echo -e "  ${YELLOW}VNC_DISABLE_DISPLAY_RESIZE${NC}  Prevent display auto-resize (true/false)"
+    echo ""
+    echo -e "${GREEN}OPTIONAL SSH PARAMETERS:${NC}"
+    echo -e "  ${YELLOW}SSH_FONT_SIZE${NC}         Terminal font size (e.g., 12)"
+    echo -e "  ${YELLOW}SSH_COLOR_SCHEME${NC}      Color scheme: black-white, gray-black, green-black, etc."
+    echo -e "  ${YELLOW}SSH_SCROLLBACK${NC}        Terminal scrollback buffer size (e.g., 1024)"
+    echo ""
     echo -e "${GREEN}EXAMPLE WITH EMBEDDED GUACD:${NC}"
     echo "  docker run -p 8080:8080 \\"
     echo "    -e GUACAMOLE_VERSION=1.5.5 \\"
@@ -45,7 +64,7 @@ show_help() {
     echo "    -e TARGET_PORT=22 \\"
     echo "    -e TARGET_USER=ubuntu \\"
     echo "    -e TARGET_PASSWORD=secret \\"
-    echo "    guacamole-client"
+    echo "    vanilla-guacamole"
     echo ""
     echo -e "${YELLOW}Note:${NC} Login to Guacamole web UI with ${GREEN}admin${NC} / ${GREEN}admin${NC}"
     echo ""
@@ -60,7 +79,7 @@ show_help() {
     echo "    -e TARGET_PORT=3389 \\"
     echo "    -e TARGET_USER=Administrator \\"
     echo "    -e TARGET_PASSWORD=winpass \\"
-    echo "    guacamole-client"
+    echo "    vanilla-guacamole"
     echo ""
     echo -e "${YELLOW}Note:${NC} Login to Guacamole web UI with ${GREEN}admin${NC} / ${GREEN}admin${NC}"
     echo ""
@@ -120,6 +139,67 @@ fi
 # Set defaults for optional parameters
 IGNORE_CERT=${IGNORE_CERT:-true}
 DRIVE_PATH=${DRIVE_PATH:-/tmp/guac-drive}
+
+# Protocol-specific parameter validation
+validate_rdp_security() {
+    if [ -n "$RDP_SECURITY" ]; then
+        case "$RDP_SECURITY" in
+            any|nla|tls|rdp|vmconnect) ;;
+            *) error_exit "RDP_SECURITY must be one of: any, nla, tls, rdp, vmconnect" ;;
+        esac
+    fi
+}
+
+validate_rdp_resize_method() {
+    if [ -n "$RDP_RESIZE_METHOD" ]; then
+        case "$RDP_RESIZE_METHOD" in
+            display-update|reconnect) ;;
+            *) error_exit "RDP_RESIZE_METHOD must be one of: display-update, reconnect" ;;
+        esac
+    fi
+}
+
+validate_vnc_color_depth() {
+    if [ -n "$VNC_COLOR_DEPTH" ]; then
+        case "$VNC_COLOR_DEPTH" in
+            8|16|24|32) ;;
+            *) error_exit "VNC_COLOR_DEPTH must be one of: 8, 16, 24, 32" ;;
+        esac
+    fi
+}
+
+validate_vnc_cursor() {
+    if [ -n "$VNC_CURSOR" ]; then
+        case "$VNC_CURSOR" in
+            local|remote) ;;
+            *) error_exit "VNC_CURSOR must be one of: local, remote" ;;
+        esac
+    fi
+}
+
+validate_boolean() {
+    local param_name="$1"
+    local param_value="$2"
+    if [ -n "$param_value" ]; then
+        case "$param_value" in
+            true|false) ;;
+            *) error_exit "$param_name must be 'true' or 'false'" ;;
+        esac
+    fi
+}
+
+# Validate protocol-specific parameters
+if [ "$TARGET_PROTOCOL" = "rdp" ]; then
+    validate_rdp_security
+    validate_rdp_resize_method
+    validate_boolean "RDP_DISABLE_AUTH" "$RDP_DISABLE_AUTH"
+    validate_boolean "RDP_CONSOLE" "$RDP_CONSOLE"
+elif [ "$TARGET_PROTOCOL" = "vnc" ]; then
+    validate_vnc_color_depth
+    validate_vnc_cursor
+    validate_boolean "VNC_DISABLE_DISPLAY_RESIZE" "$VNC_DISABLE_DISPLAY_RESIZE"
+    validate_boolean "VNC_READ_ONLY" "$VNC_READ_ONLY"
+fi
 
 # Fixed admin credentials for Guacamole web interface
 ADMIN_USER="admin"
@@ -194,9 +274,31 @@ EOF
 
 # Add protocol-specific parameters
 if [ "$TARGET_PROTOCOL" = "rdp" ]; then
+    # Add security parameter (default to 'any' if not specified)
     cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
-            <param name="security">any</param>
+            <param name="security">${RDP_SECURITY:-any}</param>
             <param name="ignore-cert">${IGNORE_CERT}</param>
+EOF
+    
+    # Optional RDP parameters (only add if set)
+    [ -n "$RDP_DOMAIN" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="domain">${RDP_DOMAIN}</param>
+EOF
+    
+    [ -n "$RDP_SERVER_LAYOUT" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="server-layout">${RDP_SERVER_LAYOUT}</param>
+EOF
+    
+    [ -n "$RDP_DISABLE_AUTH" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="disable-auth">${RDP_DISABLE_AUTH}</param>
+EOF
+    
+    [ -n "$RDP_RESIZE_METHOD" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="resize-method">${RDP_RESIZE_METHOD}</param>
+EOF
+    
+    [ -n "$RDP_CONSOLE" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="console">${RDP_CONSOLE}</param>
 EOF
     
     if [ "$ENABLE_DRIVE" = "true" ]; then
@@ -206,6 +308,37 @@ EOF
             <param name="drive-path">${DRIVE_PATH}</param>
 EOF
     fi
+elif [ "$TARGET_PROTOCOL" = "vnc" ]; then
+    # Optional VNC parameters (only add if set)
+    [ -n "$VNC_COLOR_DEPTH" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="color-depth">${VNC_COLOR_DEPTH}</param>
+EOF
+    
+    [ -n "$VNC_CURSOR" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="cursor">${VNC_CURSOR}</param>
+EOF
+    
+    [ -n "$VNC_READ_ONLY" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="read-only">${VNC_READ_ONLY}</param>
+EOF
+    
+    [ -n "$VNC_DISABLE_DISPLAY_RESIZE" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="disable-display-resize">${VNC_DISABLE_DISPLAY_RESIZE}</param>
+EOF
+
+elif [ "$TARGET_PROTOCOL" = "ssh" ]; then
+    # Optional SSH parameters (only add if set)
+    [ -n "$SSH_FONT_SIZE" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="font-size">${SSH_FONT_SIZE}</param>
+EOF
+    
+    [ -n "$SSH_COLOR_SCHEME" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="color-scheme">${SSH_COLOR_SCHEME}</param>
+EOF
+    
+    [ -n "$SSH_SCROLLBACK" ] && cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+            <param name="scrollback">${SSH_SCROLLBACK}</param>
+EOF
 fi
 
 # Close the real connection and add a dummy connection to prevent auto-connect
