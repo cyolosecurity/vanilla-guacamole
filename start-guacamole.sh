@@ -208,8 +208,14 @@ EOF
     fi
 fi
 
-# Close the XML
+# Close the real connection and add a dummy connection to prevent auto-connect
 cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
+        </connection>
+        <connection name="Dummy connection (won't connect)">
+            <protocol>vnc</protocol>
+            <param name="hostname">127.0.0.1</param>
+            <param name="port">5901</param>
+            <param name="password">dummy</param>
         </connection>
     </authorize>
 </user-mapping>
@@ -220,7 +226,9 @@ echo ""
 echo -e "${BLUE}Configuration:${NC}"
 echo -e "  Guacamole Version: ${GREEN}${GUACAMOLE_VERSION}${NC}"
 echo -e "  Embedded guacd: ${GREEN}${USE_EMBEDDED_GUACD}${NC}"
-echo -e "  guacd endpoint: ${GREEN}${GUACD_HOST}:${GUACD_PORT}${NC}"
+if [ "$USE_EMBEDDED_GUACD" = "false" ]; then
+    echo -e "  guacd endpoint: ${GREEN}${GUACD_HOST}:${GUACD_PORT}${NC}"
+fi
 echo -e "  Target: ${GREEN}${TARGET_PROTOCOL}://${TARGET_HOST}:${TARGET_PORT}${NC}"
 echo -e "  Web UI login: ${GREEN}${ADMIN_USER}${NC} / ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo ""
@@ -287,7 +295,8 @@ EOF
     done
     
     echo ""
-    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080/guacamole${NC}"
+    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
+    echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     echo -e "${CYAN}📋 Logs:${NC}"
     echo -e "   guacd:  ${BLUE}/var/log/guacd.log${NC}"
@@ -303,7 +312,8 @@ EOF
 else
     echo -e "${GREEN}✓${NC} Starting Tomcat..."
     echo ""
-    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080/guacamole${NC}"
+    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
+    echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     echo -e "${CYAN}📋 Log Files:${NC}"
     echo -e "   Tomcat logs:    Check container stdout with ${BLUE}docker logs <container>${NC}"
