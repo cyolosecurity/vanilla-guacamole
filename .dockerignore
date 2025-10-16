@@ -1,0 +1,30 @@
+# Documentation
+README.md
+QUICKSTART.md
+ARCHITECTURE.md
+
+# Git and config
+.git
+.gitignore
+
+# Docker compose files (not needed in image)
+docker-compose.yml
+docker-compose.external-guacd.yml
+
+# Environment files
+.env
+env.example
+
+# Build artifacts and logs
+*.log
+
+# OS files
+.DS_Store
+
+# Development tools (not needed in image)
+Makefile
+scripts/
+
+# IMPORTANT: Don't ignore start-guacamole.sh - it's needed!
+# start-guacamole.sh should be included in the build context
+
