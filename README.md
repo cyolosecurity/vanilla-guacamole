@@ -56,6 +56,81 @@ docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
 docker run --rm vanilla-guacamole --help
 ```
 
+## Connecting to Cyolo IDAC Production guacd
+
+When using Vanilla Guacamole with a production guacd instance launched by Cyolo IDAC, you'll need to ensure proper network connectivity between the containers.
+
+### Setup Steps
+
+1. **Create a Docker bridge network** (if not already exists):
+   ```bash
+   docker network create guacamole-net
+   ```
+
+2. **Connect your existing IDAC guacd container to the network**:
+   ```bash
+   docker network connect guacamole-net <guacd-container-name>
+   ```
+   
+   For example, if your guacd container is named `guacd_1`:
+   ```bash
+   docker network connect guacamole-net guacd_1
+   ```
+
+3. **Run Vanilla Guacamole on the same network**:
+   ```bash
+   docker run --rm \
+     --name vanilla-guacamole-1 \
+     --network guacamole-net \
+     -p 8080:8080 \
+     -e GUACAMOLE_VERSION=1.5.5 \
+     -e USE_EMBEDDED_GUACD=false \
+     -e GUACD_HOST=guacd_1 \
+     -e GUACD_PORT=4822 \
+     -e TARGET_PROTOCOL=ssh \
+     -e TARGET_HOST=your-target-server \
+     -e TARGET_PORT=22 \
+     -e TARGET_USER=ubuntu \
+     -e TARGET_PASSWORD=your-password \
+     cyolosec/vanilla-guacamole:latest
+   ```
+
+   **Key points:**
+   - Use `--network guacamole-net` to place Vanilla Guacamole on the same network
+   - Set `GUACD_HOST` to the name of your guacd container (Docker's DNS will resolve it)
+   - Use `-p 8080:8080` to expose the web interface
+
+4. **Access the Guacamole web interface**:
+   - Open browser to: `http://<host-ip>:8080`
+   - Login with: `admin` / `admin`
+
+### Cleanup
+
+When you're done, disconnect the guacd container from the network:
+
+```bash
+# Stop Vanilla Guacamole (if using --rm, it auto-removes)
+docker stop vanilla-guacamole-1
+
+# Disconnect guacd from the network
+docker network disconnect guacamole-net guacd_1
+
+# Optional: Remove the network (only if no other containers are using it)
+docker network rm guacamole-net
+```
+
+### Checking Network Connectivity
+
+To verify containers are on the same network:
+
+```bash
+# List all containers on the network
+docker network inspect guacamole-net
+
+# Test connectivity from Vanilla Guacamole to guacd
+docker exec vanilla-guacamole-1 ping -c 2 guacd_1
+```
+
 ## Environment Variables
 
 ### Required
