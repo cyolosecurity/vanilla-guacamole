@@ -15,8 +15,7 @@ FROM guacamole/guacd:1.6.0 AS guacd-1.6.0
 FROM alpine:3.18.5
 
 # Set environment variables
-ENV GUACAMOLE_VERSION=1.5.5 \
-    GUACAMOLE_HOME=/etc/guacamole \
+ENV GUACAMOLE_HOME=/etc/guacamole \
     CATALINA_HOME=/opt/tomcat \
     JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     PATH=$PATH:/opt/tomcat/bin
