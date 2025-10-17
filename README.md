@@ -14,6 +14,8 @@ A single, self-contained Docker image supporting Apache Guacamole versions 1.5.2
 
 ## Quick Start
 
+**⚠️ Important for Linux ARM64:** Embedded guacd doesn't work on Linux ARM64 (AWS Graviton, etc.). macOS ARM64/Apple Silicon users are fine due to Docker Desktop's emulation. Linux ARM64 users must use external guacd mode (see ARM64 section below).
+
 ### SSH Connection with Embedded guacd
 
 ```bash
@@ -55,6 +57,41 @@ docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
 ```bash
 docker run --rm cyolosec/vanilla-guacamole:latest --help
 ```
+
+## Linux ARM64 Support
+
+**Embedded guacd is NOT supported on Linux ARM64** because the official Apache guacd Docker images only provide AMD64 binaries, and native Linux ARM64 doesn't have automatic emulation.
+
+**macOS ARM64 (Apple Silicon) users:** You're fine! Docker Desktop provides automatic QEMU emulation, so embedded guacd works normally.
+
+### Linux ARM64 Users Must Use External guacd
+
+If you're running on Linux ARM64 (AWS Graviton, native ARM64 servers), you have two options:
+
+**Option 1: Use Cyolo IDAC's guacd** (recommended)
+- Follow the "Connecting to Cyolo IDAC Production guacd" instructions below
+- IDAC provides ARM64-compatible guacd
+
+**Option 2: Run separate AMD64 guacd with emulation**
+```bash
+# Run AMD64 guacd with QEMU emulation
+docker run -d --name guacd-amd64 --platform=linux/amd64 -p 4822:4822 guacamole/guacd:1.5.5
+
+# Run vanilla-guacamole in external mode
+docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
+  -e GUACAMOLE_VERSION=1.5.5 \
+  -e USE_EMBEDDED_GUACD=false \
+  -e GUACD_HOST=host.docker.internal \
+  -e GUACD_PORT=4822 \
+  -e TARGET_PROTOCOL=ssh \
+  -e TARGET_HOST=your-server \
+  -e TARGET_PORT=22 \
+  -e TARGET_USER=ubuntu \
+  -e TARGET_PASSWORD=your-password \
+  cyolosec/vanilla-guacamole:latest
+```
+
+**Note:** Option 2 uses QEMU emulation which has some performance overhead.
 
 ## Connecting to Cyolo IDAC Production guacd
 
@@ -138,7 +175,7 @@ docker exec vanilla-guacamole-1 ping -c 2 guacd_1
 | Variable | Description | Example Values |
 |----------|-------------|----------------|
 | `GUACAMOLE_VERSION` | Guacamole version | `1.5.2`, `1.5.5`, `1.6.0` |
-| `USE_EMBEDDED_GUACD` | Use built-in guacd | `true`, `false` |
+| `USE_EMBEDDED_GUACD` | Use built-in guacd (not supported on Linux ARM64) | `true`, `false` |
 | `TARGET_PROTOCOL` | Connection protocol | `ssh`, `rdp`, `vnc` |
 | `TARGET_HOST` | Target server IP/hostname | `192.168.1.100` |
 | `TARGET_PORT` | Target server port | `22`, `3389`, `5901` |

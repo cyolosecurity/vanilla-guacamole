@@ -21,6 +21,8 @@ show_help() {
     echo -e "${GREEN}REQUIRED ENVIRONMENT VARIABLES:${NC}"
     echo -e "  ${YELLOW}GUACAMOLE_VERSION${NC}     Guacamole version: 1.5.2, 1.5.5, or 1.6.0"
     echo -e "  ${YELLOW}USE_EMBEDDED_GUACD${NC}    Use embedded guacd: true or false"
+    echo -e "                         ${RED}NOTE: Embedded guacd doesn't work on Linux ARM64${NC}"
+    echo -e "                         ${RED}(macOS ARM64 is OK; Linux ARM64 users must use external guacd)${NC}"
     echo -e "  ${YELLOW}TARGET_PROTOCOL${NC}       Connection protocol: ssh, rdp, or vnc"
     echo -e "  ${YELLOW}TARGET_HOST${NC}           Target server hostname or IP"
     echo -e "  ${YELLOW}TARGET_PORT${NC}           Target server port"
@@ -145,6 +147,15 @@ fi
 # Validate USE_EMBEDDED_GUACD
 if [ "$USE_EMBEDDED_GUACD" != "true" ] && [ "$USE_EMBEDDED_GUACD" != "false" ]; then
     error_exit "USE_EMBEDDED_GUACD must be 'true' or 'false'"
+fi
+
+# Check for Linux ARM64 with embedded guacd (not supported - macOS ARM is OK due to QEMU)
+if [ "$USE_EMBEDDED_GUACD" = "true" ]; then
+    OS=$(uname -s)
+    ARCH=$(uname -m)
+    if [ "$OS" = "Linux" ] && ([ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]); then
+        error_exit "Embedded guacd is not supported on Linux ARM64. Please use USE_EMBEDDED_GUACD=false with an external guacd server. (Note: macOS ARM64 works fine due to Docker Desktop's emulation)"
+    fi
 fi
 
 # Validate protocol
