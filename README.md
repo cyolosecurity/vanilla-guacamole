@@ -4,13 +4,13 @@ A single, self-contained Docker image supporting Apache Guacamole versions 1.5.2
 
 ## Key Features
 
-- 🎯 **Single Container** - No docker-compose, no external config files
-- 🔄 **Multi-Version** - Choose version at runtime (1.5.2, 1.5.5, 1.6.0)
-- 📦 **Embedded guacd** - Optional built-in guacd for standalone operation
-- 🔌 **External guacd** - Or connect to existing guacd server
-- ⚙️ **Environment-Driven** - All configuration via environment variables
-- 🏔️ **Alpine-Based** - Small, efficient image (~400-500MB)
-- 📝 **Clear Help** - Built-in usage documentation
+- **Single Container** - No docker-compose, no external config files
+- **Multi-Version** - Choose version at runtime (1.5.2, 1.5.5, 1.6.0)
+- **Embedded guacd** - Optional built-in guacd for standalone operation
+- **External guacd** - Or connect to existing guacd server
+- **Environment-Driven** - All configuration via environment variables
+- **Alpine-Based** - Small, efficient image (~400-500MB)
+- **Clear Help** - Built-in usage documentation
 
 ## Quick Start
 
@@ -247,8 +247,8 @@ docker run -d -p 8080:8080 \
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/vanila-guacamole.git
-cd vanila-guacamole
+git clone https://github.com/your-repo/vanilla-guacamole.git
+cd vanilla-guacamole
 
 # Build
 docker build -t vanilla-guacamole .
