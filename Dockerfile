@@ -1,18 +1,21 @@
 # Multi-stage build for Apache Guacamole with embedded guacd support
 # Each guacd version is extracted from official images
 
+# Enable BuildKit for multi-platform support
+# syntax=docker/dockerfile:1
+
 # Stage 1: Extract guacd 1.5.2
-FROM guacamole/guacd:1.5.2 AS guacd-1.5.2
+FROM --platform=$TARGETPLATFORM guacamole/guacd:1.5.2 AS guacd-1.5.2
 
 # Stage 2: Extract guacd 1.5.5
-FROM guacamole/guacd:1.5.5 AS guacd-1.5.5
+FROM --platform=$TARGETPLATFORM guacamole/guacd:1.5.5 AS guacd-1.5.5
 
 # Stage 3: Extract guacd 1.6.0
-FROM guacamole/guacd:1.6.0 AS guacd-1.6.0
+FROM --platform=$TARGETPLATFORM guacamole/guacd:1.6.0 AS guacd-1.6.0
 
 # Final stage: Alpine-based image with Java, Tomcat, and all guacd versions
 # Using Alpine 3.18.5 to match guacd images for library compatibility
-FROM alpine:3.18.5
+FROM --platform=$TARGETPLATFORM alpine:3.18.5
 
 # Set environment variables
 ENV GUACAMOLE_HOME=/etc/guacamole \
