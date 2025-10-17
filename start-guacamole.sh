@@ -431,34 +431,42 @@ EOF
     echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
     echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
-    echo -e "${CYAN}📋 Log Files:${NC}"
-    echo -e "   guacd:                                 ${BLUE}/var/log/guacd.log${NC}"
-    echo -e "   Guacamole Client Web Application:      ${BLUE}/var/log/tomcat.log${NC}"
-    echo ""
-    echo -e "${CYAN}💡 To follow logs:${NC}"
-    echo -e "   ${BLUE}docker exec <container> tail -f /var/log/guacd.log${NC}"
-    echo -e "   ${BLUE}docker exec <container> tail -f /var/log/tomcat.log${NC}"
-    echo ""
-    echo -e "${CYAN}🔌 Embedded guacd endpoint:${NC} ${BLUE}localhost:4822${NC}"
-    echo -e "   To connect external clients to this guacd:"
-    echo -e "   1. Ensure container was started with: ${BLUE}-p 4822:4822${NC}"
-    echo -e "   2. Connect to: ${BLUE}<host-ip>:4822${NC}"
-    echo -e "   3. When done, disconnect with: ${BLUE}docker network disconnect guacamole-net <container>${NC}"
+    echo -e "${CYAN}🔌 To connect other Guacamole clients to embedded guacd:${NC}"
+    echo -e "   ${CYAN}Option 1 - Via Docker Network:${NC}"
+    echo -e "     1. Create network: ${BLUE}docker network create guacamole-net${NC}"
+    echo -e "     2. Connect this container: ${BLUE}docker network connect guacamole-net <container>${NC}"
+    echo -e "     3. Other containers can connect to: ${BLUE}<container-name>:4822${NC}"
+    echo -e "     4. Cleanup: ${BLUE}docker network disconnect guacamole-net <container>${NC}"
+    echo -e ""
+    echo -e "   ${CYAN}Option 2 - Via Host Port:${NC}"
+    echo -e "     1. Start container with: ${BLUE}-p 4822:4822${NC}"
+    echo -e "     2. Connect to: ${BLUE}<host-ip>:4822${NC}"
     echo ""
     
     # Keep container running
     tail -f /var/log/supervisor/supervisord.log >/dev/null 2>&1
 else
-    echo -e "${GREEN}✓${NC} Starting Guacamole Client Web Application (Tomcat)..."
+    # Start Tomcat in background with logs redirected
+    ${CATALINA_HOME}/bin/catalina.sh run > /var/log/tomcat.log 2>&1 &
+    
+    # Wait for Guacamole Client Web Application to be ready
+    echo -n "Starting Guacamole Client Web Application (Tomcat)... "
+    for i in {1..60}; do
+        if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
+            echo -e "${GREEN}✓ Guacamole Client Web Application is ready${NC}"
+            break
+        fi
+        sleep 0.5
+    done
+    
     echo ""
     echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
     echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
-    echo -e "${CYAN}📋 Log Files:${NC}"
-    echo -e "   Guacamole Client Web Application: Check container stdout with ${BLUE}docker logs <container>${NC}"
-    echo ""
     echo -e "${CYAN}🔌 Connected to external guacd:${NC} ${BLUE}${GUACD_HOST}:${GUACD_PORT}${NC}"
     echo ""
-    exec ${CATALINA_HOME}/bin/catalina.sh run
+    
+    # Keep container running (hide Tomcat logs for clean output)
+    tail -f /var/log/tomcat.log >/dev/null 2>&1
 fi
 
