@@ -404,8 +404,8 @@ EOF
     echo -e "${GREEN}✓${NC} Services configured"
     echo ""
     
-    # Start supervisor in background to monitor startup
-    /usr/bin/supervisord -c /etc/supervisord.conf
+    # Start supervisor in background (suppress all startup output)
+    /usr/bin/supervisord -c /etc/supervisord.conf >/dev/null 2>&1
     
     # Wait for guacd to be ready
     echo -n "Starting guacd... "

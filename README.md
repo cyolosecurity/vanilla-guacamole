@@ -25,7 +25,7 @@ docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
   -e TARGET_PORT=22 \
   -e TARGET_USER=ubuntu \
   -e TARGET_PASSWORD=secret \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 Then access: **http://localhost:8080**
@@ -45,7 +45,7 @@ docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
   -e TARGET_PORT=3389 \
   -e TARGET_USER=Administrator \
   -e TARGET_PASSWORD=winpass \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 **Login:** `admin` / `admin`
@@ -53,7 +53,7 @@ docker run -d --name vanilla-guacamole-1 -p 8080:8080 \
 ### View Help
 
 ```bash
-docker run --rm vanilla-guacamole --help
+docker run --rm cyolosec/vanilla-guacamole:latest --help
 ```
 
 ## Connecting to Cyolo IDAC Production guacd
@@ -183,7 +183,7 @@ docker run -d -p 8080:8080 \
   -e RDP_DOMAIN=CORP \
   -e RDP_SERVER_LAYOUT=en-us-qwerty \
   -e RDP_SECURITY=nla \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 #### VNC Parameters
@@ -208,7 +208,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PASSWORD=vncpass \
   -e VNC_COLOR_DEPTH=24 \
   -e VNC_CURSOR=local \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 #### SSH Parameters
@@ -232,7 +232,7 @@ docker run -d -p 8080:8080 \
   -e SSH_FONT_SIZE=14 \
   -e SSH_COLOR_SCHEME=black-white \
   -e SSH_SCROLLBACK=2048 \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 ### Parameter Validation
@@ -279,7 +279,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=5901 \
   -e TARGET_USER=vncuser \
   -e TARGET_PASSWORD=vncpass \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 ### RDP with Drive Redirection
@@ -295,7 +295,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PASSWORD=password \
   -e ENABLE_DRIVE=true \
   -e DRIVE_PATH=/tmp/shared \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 ```
 
 ### Using Different Guacamole Versions
@@ -310,7 +310,7 @@ docker run -d -p 8080:8080 \
   -e TARGET_PORT=22 \
   -e TARGET_USER=user \
   -e TARGET_PASSWORD=password \
-  vanilla-guacamole
+  cyolosec/vanilla-guacamole:latest
 
 # Or use version 1.6.0
 docker run -d -p 8080:8080 \
@@ -417,7 +417,7 @@ docker run -d -p 8080:8080 \
 docker logs <container-id>
 
 # Verify all required env vars are set
-docker run --rm vanilla-guacamole --help
+docker run --rm cyolosec/vanilla-guacamole:latest --help
 ```
 
 ### Cannot connect to target server
