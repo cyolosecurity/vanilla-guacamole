@@ -388,6 +388,24 @@ echo -e "  Target: ${GREEN}${TARGET_PROTOCOL}://${TARGET_HOST}:${TARGET_PORT}${N
 echo -e "  Web UI login: ${GREEN}${ADMIN_USER}${NC} / ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo ""
 
+# Show connection guidance for external guacd before starting services
+if [ "$USE_EMBEDDED_GUACD" = "false" ]; then
+    echo -e "${CYAN}Connection Methods:${NC}"
+    echo ""
+    echo -e "${CYAN}If guacd is managed by Cyolo IDAC:${NC}"
+    echo "  Use Docker Network approach (container name-based)"
+    echo -e "  1. Create network: ${BLUE}docker network create guacamole-net${NC}"
+    echo -e "  2. Connect guacd: ${BLUE}docker network connect guacamole-net <guacd-container>${NC}"
+    echo -e "  3. Connect this container: ${BLUE}docker network connect guacamole-net <this-container>${NC}"
+    echo -e "  4. Set GUACD_HOST to guacd container name (e.g., ${BLUE}guacd_1${NC})"
+    echo ""
+    echo -e "${CYAN}If guacd is launched with docker-compose or standalone:${NC}"
+    echo "  Use IP:Port approach"
+    echo "  - Set GUACD_HOST to the IP address or hostname"
+    echo -e "  - Set GUACD_PORT to the exposed port (default: ${BLUE}4822${NC})"
+    echo ""
+fi
+
 # Start services using supervisor or standalone
 if [ "$USE_EMBEDDED_GUACD" = "true" ]; then
     echo -e "${GREEN}✓${NC} Starting services with supervisor..."
@@ -438,8 +456,8 @@ EOF
         sleep 0.5
     done
     
-    # Wait for Guacamole Client Web Application to be ready
-    for i in {1..60}; do
+    # Wait for Guacamole Client Web Application to be ready (up to 60 seconds)
+    for i in {1..120}; do
         if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
             break
@@ -448,19 +466,8 @@ EOF
     done
     
     echo ""
-    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
-    echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
-    echo ""
-    echo -e "${CYAN}🔌 To connect other Guacamole clients to embedded guacd:${NC}"
-    echo -e "   ${CYAN}Option 1 - Via Docker Network:${NC}"
-    echo -e "     1. Create network: ${BLUE}docker network create guacamole-net${NC}"
-    echo -e "     2. Connect this container: ${BLUE}docker network connect guacamole-net <container>${NC}"
-    echo -e "     3. Other containers can connect to: ${BLUE}<container-name>:4822${NC}"
-    echo -e "     4. Cleanup: ${BLUE}docker network disconnect guacamole-net <container>${NC}"
-    echo -e ""
-    echo -e "   ${CYAN}Option 2 - Via Host Port:${NC}"
-    echo -e "     1. Start container with: ${BLUE}-p 4822:4822${NC}"
-    echo -e "     2. Connect to: ${BLUE}<host-ip>:4822${NC}"
+    echo -e "${CYAN}Access Guacamole at:${NC} ${BLUE}http://localhost:8080${NC}"
+    echo -e "${CYAN}(Ensure you ran docker with${NC} ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     
     # Keep container running
@@ -469,8 +476,8 @@ else
     # Start Tomcat in background with logs redirected
     ${CATALINA_HOME}/bin/catalina.sh run > /var/log/tomcat.log 2>&1 &
     
-    # Wait for Guacamole Client Web Application to be ready
-    for i in {1..60}; do
+    # Wait for Guacamole Client Web Application to be ready (up to 60 seconds)
+    for i in {1..120}; do
         if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
             break
@@ -479,23 +486,8 @@ else
     done
     
     echo ""
-    echo -e "${YELLOW}➜${NC}  Access Guacamole at: ${BLUE}http://localhost:8080${NC}"
-    echo -e "   ${CYAN}(Ensure you ran docker with ${BLUE}-p 8080:8080${CYAN})${NC}"
-    echo ""
-    echo -e "${CYAN}🔌 Connected to external guacd:${NC} ${BLUE}${GUACD_HOST}:${GUACD_PORT}${NC}"
-    echo ""
-    echo -e "${CYAN}📝 Connection Methods:${NC}"
-    echo -e "   ${CYAN}If guacd is managed by Cyolo IDAC:${NC}"
-    echo -e "     Use Docker Network approach (container name-based)"
-    echo -e "     1. Create network: ${BLUE}docker network create guacamole-net${NC}"
-    echo -e "     2. Connect guacd: ${BLUE}docker network connect guacamole-net <guacd-container>${NC}"
-    echo -e "     3. Connect this container: ${BLUE}docker network connect guacamole-net <this-container>${NC}"
-    echo -e "     4. Set GUACD_HOST to guacd container name (e.g., ${BLUE}guacd_1${NC})"
-    echo -e ""
-    echo -e "   ${CYAN}If guacd is launched with docker-compose or standalone:${NC}"
-    echo -e "     Use IP:Port approach"
-    echo -e "     - Set GUACD_HOST to the IP address or hostname"
-    echo -e "     - Set GUACD_PORT to the exposed port (default: ${BLUE}4822${NC})"
+    echo -e "${CYAN}Access Guacamole at:${NC} ${BLUE}http://localhost:8080${NC}"
+    echo -e "${CYAN}(Ensure you ran docker with${NC} ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     
     # Keep container running (hide Tomcat logs for clean output)
