@@ -408,20 +408,18 @@ EOF
     /usr/bin/supervisord -c /etc/supervisord.conf >/dev/null 2>&1
     
     # Wait for guacd to be ready
-    echo -n "Starting guacd... "
     for i in {1..30}; do
         if grep -q "Listening on host" /var/log/guacd.log 2>/dev/null; then
-            echo -e "${GREEN}✓ guacd is ready${NC}"
+            echo -e "${GREEN}✓${NC} guacd is ready"
             break
         fi
         sleep 0.5
     done
     
     # Wait for Guacamole Client Web Application to be ready
-    echo -n "Starting Guacamole Client Web Application (Tomcat)... "
     for i in {1..60}; do
         if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
-            echo -e "${GREEN}✓ Guacamole Client Web Application is ready${NC}"
+            echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
             break
         fi
         sleep 0.5
@@ -450,10 +448,9 @@ else
     ${CATALINA_HOME}/bin/catalina.sh run > /var/log/tomcat.log 2>&1 &
     
     # Wait for Guacamole Client Web Application to be ready
-    echo -n "Starting Guacamole Client Web Application (Tomcat)... "
     for i in {1..60}; do
         if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
-            echo -e "${GREEN}✓ Guacamole Client Web Application is ready${NC}"
+            echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
             break
         fi
         sleep 0.5
