@@ -67,7 +67,7 @@ docker run --rm vanilla-guacamole --help
 | `TARGET_PROTOCOL` | Connection protocol | `ssh`, `rdp`, `vnc` |
 | `TARGET_HOST` | Target server IP/hostname | `192.168.1.100` |
 | `TARGET_PORT` | Target server port | `22`, `3389`, `5901` |
-| `TARGET_USER` | Username for target | `ubuntu`, `Administrator` |
+| `TARGET_USER` | Username for target (optional for VNC) | `ubuntu`, `Administrator` |
 | `TARGET_PASSWORD` | Password for target server | `your-password` |
 
 **Note:** Guacamole web UI uses fixed credentials: **`admin`** / **`admin`**
@@ -288,7 +288,7 @@ docker run -d -p 8080:8080 \
 ## Architecture
 
 ### Base Image
-- **Alpine Linux 3.19** - Minimal, secure base (~5MB)
+- **Alpine Linux 3.18.5** - Minimal, secure base (~5MB) - matches guacd image version
 
 ### Components
 - **OpenJDK 11** - Java runtime from Alpine packages
