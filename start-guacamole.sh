@@ -396,7 +396,7 @@ if [ "$USE_EMBEDDED_GUACD" = "false" ]; then
     echo "  Use Docker Network approach (container name-based)"
     echo -e "  1. Create network: ${BLUE}docker network create guacamole-net${NC}"
     echo -e "  2. Connect guacd: ${BLUE}docker network connect guacamole-net <guacd-container>${NC}"
-    echo -e "  3. Connect this container: ${BLUE}docker network connect guacamole-net <this-container>${NC}"
+    echo -e "  3. Run this container with: ${BLUE}--network guacamole-net${NC}"
     echo -e "  4. Set GUACD_HOST to guacd container name (e.g., ${BLUE}guacd_1${NC})"
     echo ""
     echo -e "${CYAN}If guacd is launched with docker-compose or standalone:${NC}"
