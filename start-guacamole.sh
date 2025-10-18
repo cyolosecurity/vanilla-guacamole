@@ -123,6 +123,40 @@ error_exit() {
     exit 1
 }
 
+# Show spinner while waiting
+show_spinner() {
+    local message="$1"
+    local check_command="$2"
+    local spinstr='|/-\'
+    local temp
+    
+    echo -n "$message "
+    while ! eval "$check_command" 2>/dev/null; do
+        temp=${spinstr#?}
+        printf "\r%s [%c]  " "$message" "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep 0.15
+    done
+    printf "\r%s " "$message"
+}
+
+# Cleanup function for graceful shutdown
+cleanup() {
+    echo ""
+    echo "Shutting down..."
+    if [ "$USE_EMBEDDED_GUACD" = "true" ]; then
+        supervisorctl stop all >/dev/null 2>&1
+        supervisorctl shutdown >/dev/null 2>&1
+    else
+        # Stop Tomcat gracefully
+        ${CATALINA_HOME}/bin/catalina.sh stop >/dev/null 2>&1
+    fi
+    exit 0
+}
+
+# Trap signals for graceful shutdown
+trap cleanup SIGTERM SIGINT
+
 # Supported versions
 SUPPORTED_VERSIONS="1.5.2 1.5.5 1.6.0"
 
@@ -377,7 +411,7 @@ fi
 # Close the real connection and add a dummy connection to prevent auto-connect
 cat >> ${GUACAMOLE_HOME}/user-mapping.xml <<EOF
         </connection>
-        <connection name="Dummy connection (won't connect)">
+        <connection name="zzz - Dummy connection (won't connect)">
             <protocol>vnc</protocol>
             <param name="hostname">127.0.0.1</param>
             <param name="port">5901</param>
@@ -458,50 +492,39 @@ EOF
     # Start supervisor in background (suppress all startup output)
     /usr/bin/supervisord -c /etc/supervisord.conf >/dev/null 2>&1
     
-    # Wait for guacd to be ready
-    for i in {1..30}; do
-        if grep -q "Listening on host" /var/log/guacd.log 2>/dev/null; then
-            echo -e "${GREEN}✓${NC} guacd is ready"
-            break
-        fi
-        sleep 0.5
-    done
+    # Wait for guacd to be ready with spinner
+    show_spinner "Starting guacd..." "grep -q 'Listening on host' /var/log/guacd.log"
+    echo -e "${GREEN}✓${NC} guacd is ready"
     
-    # Wait for Guacamole Client Web Application to be ready (up to 60 seconds)
-    for i in {1..120}; do
-        if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
-            echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
-            break
-        fi
-        sleep 0.5
-    done
+    # Wait for Guacamole Client Web Application to be ready with spinner
+    show_spinner "Starting Guacamole Client Web Application..." "grep -q 'Server startup' /var/log/tomcat.log"
+    echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
     
     echo ""
     echo -e "${CYAN}Access Guacamole at:${NC} ${BLUE}http://localhost:8080${NC}"
     echo -e "${CYAN}(Ensure you ran docker with${NC} ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     
-    # Keep container running
-    tail -f /var/log/supervisor/supervisord.log >/dev/null 2>&1
+    # Keep container running - wait indefinitely
+    while true; do
+        sleep 1
+    done
 else
     # Start Tomcat in background with logs redirected
     ${CATALINA_HOME}/bin/catalina.sh run > /var/log/tomcat.log 2>&1 &
     
-    # Wait for Guacamole Client Web Application to be ready (up to 60 seconds)
-    for i in {1..120}; do
-        if grep -q "Server startup" /var/log/tomcat.log 2>/dev/null; then
-            echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
-            break
-        fi
-        sleep 0.5
-    done
+    # Wait for Guacamole Client Web Application to be ready with spinner
+    show_spinner "Starting Guacamole Client Web Application..." "grep -q 'Server startup' /var/log/tomcat.log"
+    echo -e "${GREEN}✓${NC} Guacamole Client Web Application is ready"
     
     echo ""
     echo -e "${CYAN}Access Guacamole at:${NC} ${BLUE}http://localhost:8080${NC}"
     echo -e "${CYAN}(Ensure you ran docker with${NC} ${BLUE}-p 8080:8080${CYAN})${NC}"
     echo ""
     
-    # Keep container running (hide Tomcat logs for clean output)
-    tail -f /var/log/tomcat.log >/dev/null 2>&1
+    # Keep container running - wait indefinitely
+    while true; do
+        sleep 1
+    done
 fi
 
