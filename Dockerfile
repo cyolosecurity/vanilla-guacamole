@@ -27,6 +27,7 @@ RUN apk add --no-cache \
     ca-certificates \
     supervisor \
     bash \
+    netcat-openbsd \
     cairo \
     libjpeg-turbo \
     libpng \

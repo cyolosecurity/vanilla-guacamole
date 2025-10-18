@@ -130,14 +130,13 @@ show_spinner() {
     local spinstr='|/-\'
     local temp
     
-    echo -n "$message "
     while ! eval "$check_command" 2>/dev/null; do
         temp=${spinstr#?}
         printf "\r%s [%c]  " "$message" "$spinstr"
         spinstr=$temp${spinstr%"$temp"}
         sleep 0.15
     done
-    printf "\r%s " "$message"
+    printf "\r%-80s\r%s " "" "$message"
 }
 
 # Cleanup function for graceful shutdown
@@ -433,22 +432,33 @@ echo -e "  Target: ${GREEN}${TARGET_PROTOCOL}://${TARGET_HOST}:${TARGET_PORT}${N
 echo -e "  Web UI login: ${GREEN}${ADMIN_USER}${NC} / ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo ""
 
-# Show connection guidance for external guacd before starting services
+# Test guacd connectivity for external guacd before starting services
 if [ "$USE_EMBEDDED_GUACD" = "false" ]; then
-    echo -e "${CYAN}Connection Methods:${NC}"
-    echo ""
-    echo -e "${CYAN}If guacd is managed by Cyolo IDAC:${NC}"
-    echo "  Use Docker Network approach (container name-based)"
-    echo -e "  1. Create network: ${BLUE}docker network create guacamole-net${NC}"
-    echo -e "  2. Connect guacd: ${BLUE}docker network connect guacamole-net <guacd-container>${NC}"
-    echo -e "  3. Run this container with: ${BLUE}--network guacamole-net${NC}"
-    echo -e "  4. Set GUACD_HOST to guacd container name (e.g., ${BLUE}guacd_1${NC})"
-    echo ""
-    echo -e "${CYAN}If guacd is launched with docker-compose or standalone:${NC}"
-    echo "  Use IP:Port approach"
-    echo "  - Set GUACD_HOST to the IP address or hostname"
-    echo -e "  - Set GUACD_PORT to the exposed port (default: ${BLUE}4822${NC})"
-    echo ""
+    echo -n "Testing connection to guacd at ${GUACD_HOST}:${GUACD_PORT}... "
+    if timeout 3 nc -z "${GUACD_HOST}" "${GUACD_PORT}" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} Connected"
+        echo ""
+    else
+        echo -e "${RED}✗${NC} Failed"
+        echo ""
+        echo -e "${RED}ERROR: Cannot connect to guacd at ${GUACD_HOST}:${GUACD_PORT}${NC}"
+        echo ""
+        echo -e "Please use one of the following ${CYAN}Connection Methods:${NC}"
+        echo ""
+        echo -e "${CYAN}If guacd is managed by Cyolo IDAC:${NC}"
+        echo "  Use Docker Network approach (container name-based)"
+        echo -e "  1. Create network: ${BLUE}docker network create guacamole-net${NC}"
+        echo -e "  2. Connect guacd: ${BLUE}docker network connect guacamole-net <guacd-container>${NC}"
+        echo -e "  3. Run this container with: ${BLUE}--network guacamole-net${NC}"
+        echo -e "  4. Set GUACD_HOST to guacd container name (e.g., ${BLUE}guacd_1${NC})"
+        echo ""
+        echo -e "${CYAN}If guacd is launched with docker-compose or standalone:${NC}"
+        echo "  Use IP:Port approach"
+        echo "  - Set GUACD_HOST to the IP address or hostname"
+        echo -e "  - Set GUACD_PORT to the exposed port (default: ${BLUE}4822${NC})"
+        echo ""
+        exit 1
+    fi
 fi
 
 # Start services using supervisor or standalone
